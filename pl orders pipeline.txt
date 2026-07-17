@@ -1,0 +1,132 @@
+{
+    "name": "pl_orders_pipeline",
+    "properties": {
+        "activities": [
+            {
+                "name": "Bronze Notebook",
+                "type": "DatabricksNotebook",
+                "dependsOn": [],
+                "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "notebookPath": "/Shared/rookie04/nb_bronze_autoloader",
+                    "baseParameters": {
+                        "p_trainee_id": {
+                            "value": "@pipeline().parameters.p_trainee_id",
+                            "type": "Expression"
+                        },
+                        "p_input_path": {
+                            "value": "@concat(\n'abfss://landing@stdeltalakedemo.dfs.core.windows.net/',\npipeline().parameters.p_trainee_id,\n'/'\n)",
+                            "type": "Expression"
+                        },
+                        "p_bronze_path": {
+                            "value": "@concat(\n'abfss://bronze@stdeltalakedemo.dfs.core.windows.net/',\npipeline().parameters.p_trainee_id,\n'/'\n)",
+                            "type": "Expression"
+                        }
+                    }
+                },
+                "linkedServiceName": {
+                    "referenceName": "ls_AzureDatabricks",
+                    "type": "LinkedServiceReference"
+                }
+            },
+            {
+                "name": "Silver Notebook",
+                "type": "DatabricksNotebook",
+                "dependsOn": [
+                    {
+                        "activity": "Bronze Notebook",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "notebookPath": "/Shared/rookie04/nb_silver_transform",
+                    "baseParameters": {
+                        "p_trainee_id": {
+                            "value": "@pipeline().parameters.p_trainee_id\n",
+                            "type": "Expression"
+                        },
+                        "p_bronze_path": {
+                            "value": "@concat(\n'abfss://bronze@stdeltalakedemo.dfs.core.windows.net/',\npipeline().parameters.p_trainee_id,\n'/'\n)",
+                            "type": "Expression"
+                        },
+                        "p_silver_path": {
+                            "value": "@concat(\n'abfss://silver@stdeltalakedemo.dfs.core.windows.net/',\npipeline().parameters.p_trainee_id,\n'/'\n)",
+                            "type": "Expression"
+                        }
+                    }
+                },
+                "linkedServiceName": {
+                    "referenceName": "ls_AzureDatabricks",
+                    "type": "LinkedServiceReference"
+                }
+            },
+            {
+                "name": "Gold Notebook",
+                "type": "DatabricksNotebook",
+                "dependsOn": [
+                    {
+                        "activity": "Silver Notebook",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "notebookPath": "/Shared/rookie04/nb_gold_aggregation",
+                    "baseParameters": {
+                        "p_trainee_id": {
+                            "value": "@pipeline().parameters.p_trainee_id",
+                            "type": "Expression"
+                        },
+                        "p_silver_path": {
+                            "value": "@concat(\n'abfss://silver@stdeltalakedemo.dfs.core.windows.net/',\npipeline().parameters.p_trainee_id,\n'/'\n)\n",
+                            "type": "Expression"
+                        },
+                        "p_gold_path": {
+                            "value": "@concat(\n'abfss://gold@stdeltalakedemo.dfs.core.windows.net/',\npipeline().parameters.p_trainee_id,\n'/'\n)",
+                            "type": "Expression"
+                        }
+                    }
+                },
+                "linkedServiceName": {
+                    "referenceName": "ls_AzureDatabricks",
+                    "type": "LinkedServiceReference"
+                }
+            }
+        ],
+        "parameters": {
+            "p_trainee_id": {
+                "type": "string",
+                "defaultValue": "rookie04"
+            }
+        },
+        "annotations": [],
+        "lastPublishTime": "2026-05-20T10:57:25Z"
+    },
+    "type": "Microsoft.DataFactory/factories/pipelines"
+}
